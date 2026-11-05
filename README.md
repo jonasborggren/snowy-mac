@@ -19,6 +19,7 @@ When a compatible release is available, **Update** appears in blue near the bott
 Click the snowflake in your menu bar to make yourself comfortable:
 
 - Choose **Light**, **Steady**, or **Flurry**.
+- Or choose **Local Weather** to snow only when it's snowing where you are, about as heavily as outside.
 - Brush snow away with the **Glove**, or choose **Shovel** for a proper clear-out.
 - Open **Wind…** and stretch or rotate the arrow to change its strength and direction.
 - **Pause** the weather or **Clear Settled Snow** whenever you like.
@@ -27,7 +28,22 @@ Snow collects on window tops, widgets, Spotlight, and a bottom-positioned Dock. 
 
 Choose **Open Snowy…** in the snowflake menu to apply a wallpaper, select a pixel-art preset, or build your own desktop scene. Props catch snow and can slide when swept. In **Edit Scene**, place individual pieces and attach string lights to the desktop edges and widgets. Finder icon anchors are optional and require Accessibility access. The **Guide** includes **Replay Walkthrough**.
 
-The desktop stays clickable. Snowy reads public window bounds for snow and widgets. Finder icon anchors use Accessibility only when enabled. Snowy keeps your settings and imported wallpapers on your Mac and checks GitHub for signed updates.
+The desktop stays clickable. Snowy reads public window bounds for snow and widgets. Finder icon anchors use Accessibility only when enabled. Snowy keeps your settings and imported wallpapers on your Mac and checks GitHub for signed updates. With Local Weather on, it also asks Open-Meteo about the weather where you are.
+
+### Local Weather
+
+With **Local Weather** on, Snowy asks macOS for your approximate location (city level) and checks [Open-Meteo](https://open-meteo.com) every 15 minutes for current snowfall. Only coordinates rounded to two decimals are sent; no account or API key is involved.
+
+The snowfall rate decides how hard it snows on your desktop:
+
+| Outside | On your desktop |
+| --- | --- |
+| No snow (or rain) | Nothing falls; settled snow stays until you clear it |
+| Light, ~0.5 cm/h | Like **Light** |
+| Moderate, ~1.5 cm/h | Like **Steady** |
+| Heavy, 3 cm/h or more | Like **Flurry**, a bit heavier for real blizzards |
+
+The current conditions are shown under the menu item. If location access is denied, Snowy says so and stays quiet; picking a preset turns Local Weather off.
 
 ## Build it yourself
 

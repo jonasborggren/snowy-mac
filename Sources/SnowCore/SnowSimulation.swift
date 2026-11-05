@@ -11,6 +11,11 @@ public final class SnowSimulation {
     public internal(set) var elevatedMeshRanges: [Range<Int>] = []
     public internal(set) var meshRevision: UInt64 = 0
     public var snowfall: Snowfall = .steady
+    /// When set, local weather drives the snowfall instead of the chosen preset. Zero means it isn't snowing.
+    public var weatherDensity: Float? {
+        didSet { if let value = weatherDensity, !value.isFinite { weatherDensity = 0 } }
+    }
+    public var snowDensity: Float { max(0, weatherDensity ?? snowfall.density) }
     public var reducedMotion = false
     public var particleScale: Float = 1
     public var wind = WindSettings() {
@@ -139,14 +144,14 @@ public final class SnowSimulation {
             previousCursor = cursor
         } else { previousCursor = nil }
 
-        for drift in drifts { drift.accumulate(dt: dt, intensity: snowfall.density) }
+        for drift in drifts { drift.accumulate(dt: dt, intensity: snowDensity) }
         if settleAge >= 0.1 {
             for drift in drifts { drift.settle() }
             settleAge = 0
             meshDirty = true
         }
         let desired = reducedMotion ? 0 : min(budget.flakes,
-            Int(Float(budget.flakes) * min(1, snowfall.density / Snowfall.flurry.density) * max(0, min(1, particleScale))))
+            Int(Float(budget.flakes) * min(1, snowDensity / Snowfall.flurry.density) * max(0, min(1, particleScale))))
         if flakes.count > desired { flakes.removeLast(flakes.count - desired) }
         while flakes.count < desired { flakes.append(newFlake(scattered: true)) }
 

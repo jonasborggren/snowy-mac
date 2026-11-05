@@ -26,6 +26,25 @@ final class DesktopCoordinator {
             onStateChange?()
         }
     }
+    /// Follow the weather where the Mac is, instead of the chosen preset.
+    var localWeather: Bool {
+        didSet {
+            UserDefaults.standard.set(localWeather, forKey: "localWeather")
+            if localWeather { weather.start() } else { weather.stop() }
+            applyWeather()
+        }
+    }
+    var weatherStatus: WeatherService.Status { weather.status }
+    /// The density local weather asks for, or nil while it's off or not yet known.
+    var weatherDensity: Float? {
+        guard localWeather else { return nil }
+        switch weather.status {
+        case .reading(let reading): return reading.snowDensity
+        case .locationDenied, .unavailable: return 0
+        case .idle, .locating: return 0
+        }
+    }
+    private let weather = WeatherService()
     var wind: WindSettings {
         didSet {
             UserDefaults.standard.set(wind.vector.x, forKey: "windX")
@@ -93,9 +112,20 @@ final class DesktopCoordinator {
         wind = WindSettings(vector: SIMD2(UserDefaults.standard.float(forKey: "windX"),
                                          UserDefaults.standard.float(forKey: "windY")))
         tool = SnowTool(rawValue: UserDefaults.standard.string(forKey: "cursorTool") ?? "") ?? .glove
+        localWeather = UserDefaults.standard.bool(forKey: "localWeather")
         policy = Self.readPolicy()
+        weather.onChange = { [weak self] _ in self?.applyWeather() }
         installObservers()
         configureDisplays()
+        if localWeather { weather.start() }
+    }
+
+    func refreshWeather() { weather.refresh() }
+
+    private func applyWeather() {
+        let density = weatherDensity
+        for display in displays { display.renderer.simulation.weatherDensity = density }
+        onStateChange?()
     }
 
     func clear() {
@@ -130,6 +160,7 @@ final class DesktopCoordinator {
 
     func stop() {
         stopping = true
+        weather.stop()
         metadataTimer?.invalidate()
         metadataTimer = nil
         tracker.invalidate()
@@ -245,6 +276,7 @@ final class DesktopCoordinator {
                 let renderer = try MetalRenderer(context: context, size: frame.size, menuInset: geometry.menuInset,
                                                  budget: budget, seed: UInt64(geometry.id))
                 renderer.simulation.snowfall = snowfall
+                renderer.simulation.weatherDensity = weatherDensity
                 renderer.simulation.wind = wind
                 renderer.simulation.tool = tool
                 let panel = SnowPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel],

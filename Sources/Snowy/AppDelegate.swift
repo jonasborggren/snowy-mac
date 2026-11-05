@@ -8,6 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
     private let pauseItem = NSMenuItem(title: "Pause Snow", action: #selector(togglePause), keyEquivalent: "p")
     private let stateItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var weatherItems: [NSMenuItem] = []
+    private let localWeatherItem = NSMenuItem(title: "Local Weather", action: #selector(toggleLocalWeather), keyEquivalent: "l")
+    private let weatherInfoItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var windPopover: NSPopover?
     private var toolItems: [NSMenuItem] = []
     private var welcomeWindow: WelcomeWindowController?
@@ -111,6 +113,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
             weatherItems.append(option)
             menu.addItem(option)
         }
+        localWeatherItem.target = self
+        localWeatherItem.toolTip = "Snow only when it snows where you are, about as heavily as outside"
+        menu.addItem(localWeatherItem)
+        weatherInfoItem.isEnabled = false
+        weatherInfoItem.indentationLevel = 1
+        weatherInfoItem.isHidden = true
+        menu.addItem(weatherInfoItem)
         let wind = NSMenuItem(title: "Wind…", action: #selector(showWind), keyEquivalent: "w")
         wind.target = self
         menu.addItem(wind)
@@ -180,8 +189,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
         else if coordinator.policy.particleScale < 1 { stateItem.title = "Gentle snowfall · saving energy" }
         else { stateItem.title = "Brush a snowy edge to sweep it away" }
         for (index, item) in weatherItems.enumerated() {
-            item.state = Snowfall.allCases[index] == coordinator.snowfall ? .on : .off
+            item.state = !coordinator.localWeather && Snowfall.allCases[index] == coordinator.snowfall ? .on : .off
         }
+        localWeatherItem.state = coordinator.localWeather ? .on : .off
+        weatherInfoItem.isHidden = !coordinator.localWeather
+        weatherInfoItem.title = Self.describe(coordinator.weatherStatus)
         for (index, item) in toolItems.enumerated() {
             item.state = (index == 1 ? coordinator.tool == .shovel : coordinator.tool == .glove) ? .on : .off
         }
@@ -220,6 +232,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSM
     }
     @objc private func setSnowfall(_ sender: NSMenuItem) {
         guard Snowfall.allCases.indices.contains(sender.tag) else { return }
+        coordinator?.localWeather = false
         coordinator?.snowfall = Snowfall.allCases[sender.tag]
+    }
+    @objc private func toggleLocalWeather() {
+        guard let coordinator else { return }
+        coordinator.localWeather.toggle()
+        // Opening the menu again after enabling it is a natural moment to want fresh data.
+        if coordinator.localWeather { coordinator.refreshWeather() }
+    }
+
+    private static func describe(_ status: WeatherService.Status) -> String {
+        switch status {
+        case .idle, .locating: return "Finding your weather…"
+        case .locationDenied: return "Allow Location in System Settings → Privacy"
+        case .unavailable(let message): return message
+        case .reading(let reading):
+            let temperature = String(format: "%.0f°C", reading.temperature)
+            guard reading.isSnowing else { return "Not snowing outside · \(temperature)" }
+            let intensity: String = switch reading.snowDensity {
+            case ..<0.7: "Light snow"
+            case ..<1.3: "Moderate snow"
+            default: "Heavy snow"
+            }
+            if reading.snowfallPerHour >= 0.05 {
+                return String(format: "%@ · %.1f cm/h · %@", intensity, reading.snowfallPerHour, temperature)
+            }
+            return "\(intensity) · \(temperature)"
+        }
     }
 }

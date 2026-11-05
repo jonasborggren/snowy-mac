@@ -12,6 +12,8 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <key>NSLocationUsageDescription</key><string>Snowy uses your approximate location to snow when it snows outside.</string>
+    <key>NSLocationWhenInUseUsageDescription</key><string>Snowy uses your approximate location to snow when it snows outside.</string>
     <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
     <key>UTExportedTypeDeclarations</key>
     <array>
